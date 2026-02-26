@@ -29,15 +29,15 @@ const UserBtn = ({
     image: string | null;
     emailVerified: boolean;
   } | null,
-  onSettings: MouseEventHandler<HTMLDivElement> | undefined,
-  onProfile: MouseEventHandler<HTMLDivElement> | undefined,
-  onBilling: MouseEventHandler<HTMLDivElement> | undefined,
-  showBadge: boolean,
-  badgeText: string,
-  badgeVariant: "default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined,
-  size: 'sm' | 'md' | 'lg',
-  showEmail: boolean,
-  showMemberSince: boolean,
+  onSettings?: MouseEventHandler<HTMLDivElement> | undefined,
+  onProfile?: MouseEventHandler<HTMLDivElement> | undefined,
+  onBilling?: MouseEventHandler<HTMLDivElement> | undefined,
+  showBadge?: boolean,
+  badgeText?: string,
+  badgeVariant?: "default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined,
+  size?: 'sm' | 'md' | 'lg',
+  showEmail?: boolean,
+  showMemberSince?: boolean,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
