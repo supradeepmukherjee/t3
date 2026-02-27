@@ -1,14 +1,22 @@
+import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
-import { KeyboardEvent, useEffect, useState } from "react"
+import { useAIModels } from "@/modules/agent/hook/agent"
+import { Send } from "lucide-react"
+import { KeyboardEvent, SubmitEventHandler, SyntheticEvent, useEffect, useState } from "react"
+import ModelSelector from "./ModelSelector"
 
 const MsgForm = ({ initialMsg, onMsgChange }: {
     initialMsg: string,
     onMsgChange?: () => void
 }) => {
     const [msg, setMsg] = useState('')
-    const handleSubmit = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    const { data, isPending } = useAIModels()
+    const [model, setModel] = useState(data?.models?.[0].id)
+    const handleSubmit = (e: KeyboardEvent<HTMLTextAreaElement> | SyntheticEvent<HTMLFormElement>) => {
         try {
             e.preventDefault()
+            console.log('msg submitted')
         } catch (err) {
             console.error(err)
         }
@@ -18,10 +26,10 @@ const MsgForm = ({ initialMsg, onMsgChange }: {
             setMsg(initialMsg)
             onMsgChange?.()
         }
-    }, [initialMsg])
+    }, [initialMsg, onMsgChange])
     return (
         <div className="w-full max-w-3xl mx-auto px-4 pb-6">
-            <form onSubmit={() => { }}>
+            <form onSubmit={handleSubmit}>
                 <div className="relative rounded-2xl border-border shadow-sm transition-all">
                     <Textarea
                         value={msg}
@@ -32,7 +40,25 @@ const MsgForm = ({ initialMsg, onMsgChange }: {
                                 e.preventDefault()
                                 handleSubmit(e)
                             }
-                        }} />
+                        }}
+                    />
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 border-t">
+                        <div className="flex items-center gap-1">
+                            {isPending ?
+                                <><Spinner /></>
+                                :
+                                <>
+                                    <ModelSelector models={data?.data} id={model} onModelSelect={setModel} className="ml-1" />
+                                </>
+                            }
+                        </div>
+                        <Button type="submit" disabled={!msg.trim()} size='sm' variant={msg.trim() ? 'default' : 'ghost'}>
+                            <Send className="h-4 w-4" />
+                            <span className="sr-only">
+                                Send Message
+                            </span>
+                        </Button>
+                    </div>
                 </div>
             </form>
         </div>
