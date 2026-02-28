@@ -5,6 +5,8 @@ import { useAIModels } from "@/modules/agent/hook/agent"
 import { Send } from "lucide-react"
 import { KeyboardEvent, SubmitEventHandler, SyntheticEvent, useEffect, useState } from "react"
 import ModelSelector from "./ModelSelector"
+import useCreateChat from "../hooks/useCreateChat"
+import { toast } from "sonner"
 
 const MsgForm = ({ initialMsg, onMsgChange }: {
     initialMsg: string,
@@ -12,13 +14,18 @@ const MsgForm = ({ initialMsg, onMsgChange }: {
 }) => {
     const [msg, setMsg] = useState('')
     const { data, isPending } = useAIModels()
+    const { mutateAsync, isPending: isNewChatPending } = useCreateChat()
     const [model, setModel] = useState(data?.models?.[0].id)
-    const handleSubmit = (e: KeyboardEvent<HTMLTextAreaElement> | SyntheticEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: KeyboardEvent<HTMLTextAreaElement> | SyntheticEvent<HTMLFormElement>) => {
         try {
             e.preventDefault()
+            await mutateAsync({ msg, model })
             console.log('msg submitted')
         } catch (err) {
             console.error(err)
+            toast.error('Failed to send message')
+        } finally {
+            setMsg('')
         }
     }
     useEffect(() => {
@@ -52,11 +59,16 @@ const MsgForm = ({ initialMsg, onMsgChange }: {
                                 </>
                             }
                         </div>
-                        <Button type="submit" disabled={!msg.trim()} size='sm' variant={msg.trim() ? 'default' : 'ghost'}>
-                            <Send className="h-4 w-4" />
-                            <span className="sr-only">
-                                Send Message
-                            </span>
+                        <Button type="submit" disabled={!msg.trim() || isNewChatPending} size='sm' variant={msg.trim() ? 'default' : 'ghost'}>
+                            {isNewChatPending ?
+                                <><Spinner /></>
+                                :
+                                <>
+                                    <Send className="h-4 w-4" />
+                                    <span className="sr-only">
+                                        Send Message
+                                    </span>
+                                </>}
                         </Button>
                     </div>
                 </div>

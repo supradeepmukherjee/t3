@@ -23,6 +23,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  chats   Chat[]
 
   @@unique([email])
   @@map("user")
@@ -74,4 +75,41 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Chat {
+  id String @id @default(cuid())
+  title String
+  model String
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  msgs Msg[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Msg{
+id String @id @default(cuid())
+msgRole MsgRole @default(USER)
+msgType MsgType @default(NORMAL)
+content String @db.Text
+model String?
+chatId String
+chat Chat @relation(fields:[chatId], references:[id],onDelete:Cascade)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+@@index([chatId,createdAt])
+}
+
+enum MsgRole{
+  USER
+  ASSISTANT
+}
+
+enum MsgType{
+  NORMAL
+  ERROR
 }
