@@ -53,3 +53,62 @@ export const createChatWithMsg = async ({ msg, model }: {
         }
     }
 }
+
+export const getAllChats = async () => {
+    try {
+        const { data } = await currentUser()
+        if (!data) return {
+            success: false,
+            msg: 'Unauthenticated',
+            data: null
+        }
+        const chats = await prisma.chat.findMany({
+            where: { userId: data.id },
+            include: { msgs: true },
+            orderBy: { createdAt: 'desc' }
+        })
+        return {
+            success: true,
+            msg: 'Chats fetched successfully',
+            data: chats
+        }
+    } catch (err) {
+        console.error('Error fetching chats', err)
+        return {
+            success: false,
+            msg: 'Failed to fetch chats',
+            data: null
+        }
+    }
+}
+
+export const deleteChat = async (id: string) => {
+    try {
+        const { data } = await currentUser()
+        if (!data) return {
+            success: false,
+            msg: 'Unauthenticated',
+            data: null
+        }
+        const chat = await prisma.chat.findUnique({ where: { id, userId: data.id } })
+        if (!chat) return {
+            success: false,
+            msg: 'Chat not found',
+            data: null
+        }
+        await prisma.chat.delete({ where: { id } })
+        revalidatePath('/')
+        return {
+            success: true,
+            msg: 'Chat deleted successfully',
+            data: null
+        }
+    } catch (err) {
+        console.error('Failed to delete chat', err)
+        return {
+            success: false,
+            msg: 'Failed to delete chat',
+            data: null
+        }
+    }
+}

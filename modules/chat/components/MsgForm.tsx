@@ -3,10 +3,10 @@ import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { useAIModels } from "@/modules/agent/hook/agent"
 import { Send } from "lucide-react"
-import { KeyboardEvent, SubmitEventHandler, SyntheticEvent, useEffect, useState } from "react"
-import ModelSelector from "./ModelSelector"
-import useCreateChat from "../hooks/useCreateChat"
+import { KeyboardEvent, SyntheticEvent, useEffect, useState } from "react"
 import { toast } from "sonner"
+import useCreateChat from "../hooks/useCreateChat"
+import ModelSelector from "./ModelSelector"
 
 const MsgForm = ({ initialMsg, onMsgChange }: {
     initialMsg: string,
