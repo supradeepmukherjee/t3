@@ -82,6 +82,33 @@ export const getAllChats = async () => {
     }
 }
 
+export const getChatById = async (id: string) => {
+    try {
+        const { data } = await currentUser()
+        if (!data) return {
+            success: false,
+            msg: 'Unauthenticated',
+            data: null
+        }
+        const chat = await prisma.chat.findUnique({
+            where: { id, userId: data.id },
+            include: { msgs: true },
+        })
+        return {
+            success: true,
+            msg: 'Chat fetched successfully',
+            data: chat
+        }
+    } catch (err) {
+        console.error('Error fetching chat', err)
+        return {
+            success: false,
+            msg: 'Failed to fetch chat',
+            data: null
+        }
+    }
+}
+
 export const deleteChat = async (id: string) => {
     try {
         const { data } = await currentUser()

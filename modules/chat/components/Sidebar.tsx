@@ -77,7 +77,7 @@ const Sidebar = ({ user, chats }: {
     e.preventDefault()
     e.stopPropagation()
     setId(id)
-    setModalOpen(false)
+    setModalOpen(true)
   }
   const renderChatList = (l: {
     id: string,
