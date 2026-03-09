@@ -10,16 +10,16 @@ const provider = createOpenRouter({
 
 export async function POST(req: NextRequest) {
     try {
-        const { id, msgs, model, skipUserMsg } = await req.json()
-        const prevMsgs = id ?
+        const { chatId, msgs, model, skipUserMsg } = await req.json()
+        const prevMsgs = chatId ?
             await prisma.msg.findMany({
-                where: { chatId: id },
+                where: { chatId: chatId },
                 orderBy: { createdAt: 'asc' }
             })
             : []
         const uiMsgs = prevMsgs.map(convertStoreMsgToUI).filter(m => m !== null)
         const normalizedNewMsgs = Array.isArray(msgs) ? msgs : [msgs]
-        const allUiMsgs = [...uiMsgs, ...normalizedNewMsgs]
+        const allUiMsgs = [...uiMsgs, ...normalizedNewMsgs].filter(m => m != null && m.role)
         let modelMsgs
         try {
             modelMsgs = await convertToModelMessages(allUiMsgs)
@@ -33,47 +33,61 @@ export async function POST(req: NextRequest) {
                     .join('\n')
             })).filter(m => m.content)
         }
-        const data = streamText({
+        const result = streamText({
             model: provider.chat(model),
             messages: modelMsgs,
-            system: CHAT_SYSTEM_PROMPT
-        }).toUIMessageStream({
-            originalMessages: allUiMsgs,
-            onFinish: async ({ responseMessage }) => {
+            system: CHAT_SYSTEM_PROMPT,
+            onFinish: async ({ response }) => {
                 try {
+                    const responseMessage = response.messages.at(-1)
                     const msgsToSave = []
-                    if (!skipUserMsg) {
+
+                    if (!skipUserMsg && chatId) {
                         const latestUserMsg = normalizedNewMsgs.at(-1)
-                        if (latestUserMsg.role === 'user')
+                        if (latestUserMsg?.role === 'user')
                             msgsToSave.push({
-                                chatId: id,
+                                chatId,
                                 content: extractPartsAsJSON(latestUserMsg),
                                 msgRole: MsgRole.USER,
                                 model,
                                 msgType: MsgType.NORMAL,
-
                             })
                     }
-                    if (responseMessage?.parts?.length === 0) {
-                        msgsToSave.push({
-                            chatId: id,
-                            content: extractPartsAsJSON(responseMessage),
-                            msgRole: MsgRole.ASSISTANT,
-                            model,
-                            msgType: MsgType.NORMAL
-                        })
+
+                    if (chatId && responseMessage) {
+                        const content = responseMessage.content
+
+                        // Normalize: could be string or array of parts
+                        const parts = typeof content === 'string'
+                            ? [{ type: 'text', text: content }]
+                            : Array.isArray(content)
+                                ? content
+                                : []
+
+                        const text = parts
+                            .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+                            .map((p) => p.text)
+                            .join('')
+
+                        if (text.length > 0)
+                            msgsToSave.push({
+                                chatId,
+                                content: JSON.stringify(responseMessage.content),
+                                msgRole: MsgRole.ASSISTANT,
+                                model,
+                                msgType: MsgType.NORMAL,
+                            })
                     }
-                    if (msgsToSave.length > 0) await prisma.msg.createMany({ data: msgsToSave })
+
+                    if (msgsToSave.length > 0)
+                        await prisma.msg.createMany({ data: msgsToSave })
                 } catch (err) {
-                    console.log(err)
+                    console.error('onFinish error:', err)
                 }
             }
         })
-        return NextResponse.json({
-            success: true,
-            msg: 'Streaming',
-            data,
-        }, { status: 200 })
+
+        return result.toTextStreamResponse()
     } catch (err) {
         console.error(err);
         return NextResponse.json({
@@ -86,37 +100,37 @@ export async function POST(req: NextRequest) {
 
 function convertStoreMsgToUI(m: Msg) {
     try {
-        const parts = JSON.parse(m.content)
+        let parts
+
+        try {
+            const parsed = JSON.parse(m.content)
+            parts = Array.isArray(parsed) ? parsed : [{ type: 'text', text: m.content }]
+        } catch {
+            parts = [{ type: 'text', text: m.content }]
+        }
+
         const validParts = parts.filter((p: { type: string }) => p.type === 'text')
         if (validParts.length === 0) return null
+
         return {
-            id: m.id,
             role: m.msgRole.toLowerCase(),
             parts: validParts,
-            createdAt: m.createdAt
+            id: m.id,
         }
     } catch (err) {
-        console.log(err)
-        return {
-            id: m.id,
-            role: m.msgRole.toLowerCase(),
-            parts: [{
-                type: 'text',
-                text: m.content
-            }],
-            createdAt: m.createdAt
-        }
+        console.error('convertStoreMsgToUI failed:', err)
+        return null
     }
 }
 function extractPartsAsJSON(m: {
     parts: object[],
     content: string
 }) {
-    if (m.parts && Array.isArray(m.parts)) return JSON.stringify(m.parts)
-    return JSON.stringify([{
-        type: 'text',
-        text: m.content || ''
-    }])
+    const parts = m?.parts ?? m?.content
+
+    if (typeof parts === 'string') return JSON.stringify([{ type: 'text', text: parts }])
+    if (Array.isArray(parts)) return JSON.stringify(parts)
+    return JSON.stringify([])
 }
 
 const CHAT_SYSTEM_PROMPT = `

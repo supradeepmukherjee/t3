@@ -14,7 +14,7 @@ const ModelSelector = ({ className, id, models, onModelSelect }: {
   models: Model[]
   id: string,
   onModelSelect: Dispatch<string>
-  className: string
+  className?: string
 }) => {
   const [open, setOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
