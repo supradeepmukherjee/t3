@@ -12,7 +12,8 @@ import { useChatStore } from "@/modules/chat/store/chat"
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from "ai"
 import { RotateCcwIcon, StopCircleIcon } from "lucide-react"
-import { Fragment, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 
 const MsgWithForm = ({ id }: { id: string }) => {
     const { data: models, isPending: isModelsLoading } = useAIModels()
@@ -20,6 +21,10 @@ const MsgWithForm = ({ id }: { id: string }) => {
     const { hasChatBeenTriggered, markChatAsTriggered } = useChatStore()
     const [model, setModel] = useState(data?.data?.model)
     const [input, setInput] = useState('')
+    const autoTriggered = useRef(false)
+    const searchParams = useSearchParams()
+    const router = useRouter()
+    const shouldAutoTrigger = searchParams.get('autoTrigger') === 'true'
     const initialMsgs = useMemo(() => {
         if (!data?.data?.msgs) return []
         return data.data.msgs
@@ -68,6 +73,32 @@ const MsgWithForm = ({ id }: { id: string }) => {
         stop()
     }
     const msgToRender = [...initialMsgs, ...messages]
+    useEffect(() => {
+        if (data?.data?.model && !model) setModel(data?.data?.model)
+    }, [data?.data?.model, model])
+    useEffect(() => {
+        if (
+            autoTriggered.current ||
+            !shouldAutoTrigger ||
+            hasChatBeenTriggered(id) ||
+            !model ||
+            initialMsgs.length === 0) return
+        if (initialMsgs.at(-1)?.role !== 'user') return
+        autoTriggered.current = true
+        markChatAsTriggered(id)
+        sendMessage(
+            //
+            { text: initialMsgs.at(-1)?.parts?.[0]?.text ?? '' },
+            {
+                body: {
+                    model,
+                    chatId: id,
+                    skipUserMsg: true
+                }
+            }
+        )
+        router.replace(`/chat/${id}`, { scroll: false })
+    }, [hasChatBeenTriggered, id, initialMsgs, initialMsgs.length, markChatAsTriggered, model, router, sendMessage, shouldAutoTrigger])
     if (isPending) return (
         <div className="flex items-center justify-center h-full">
             <Spinner />
