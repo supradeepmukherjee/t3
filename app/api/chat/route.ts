@@ -10,7 +10,7 @@ const provider = createOpenRouter({
 
 export async function POST(req: NextRequest) {
     try {
-        const { chatId, msgs, model, skipUserMsg } = await req.json()
+        const { chatId, messages, model, skipUserMsg } = await req.json()
         const prevMsgs = chatId ?
             await prisma.msg.findMany({
                 where: { chatId: chatId },
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
             })
             : []
         const uiMsgs = prevMsgs.map(convertStoreMsgToUI).filter(m => m !== null)
-        const normalizedNewMsgs = Array.isArray(msgs) ? msgs : [msgs]
+        const normalizedNewMsgs = Array.isArray(messages) ? messages : [messages]
         const allUiMsgs = [...uiMsgs, ...normalizedNewMsgs].filter(m => m != null && m.role)
         let modelMsgs
         try {

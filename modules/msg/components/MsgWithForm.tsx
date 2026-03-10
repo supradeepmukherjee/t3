@@ -3,6 +3,7 @@
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation"
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message"
 import { PromptInput, PromptInputBody, PromptInputButton, PromptInputSubmit, PromptInputTextarea, PromptInputTools } from "@/components/ai-elements/prompt-input"
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning"
 import { Spinner } from "@/components/ui/spinner"
 import { useAIModels } from "@/modules/agent/hook/agent"
 import ModelSelector from "@/modules/chat/components/ModelSelector"
@@ -95,6 +96,15 @@ const MsgWithForm = ({ id }: { id: string }) => {
                                                             </MessageResponse>
                                                         </MessageContent>
                                                     </Message>
+                                                )
+                                            case 'reasoning':
+                                                return (
+                                                    <Reasoning className="max-w-2xl p-4 border border-muted rounded-md bg-muted/50" key={m.id}>
+                                                        <ReasoningTrigger />
+                                                        <ReasoningContent className="mt-2 italic font-light text-muted-foreground">
+                                                            {p.text}
+                                                        </ReasoningContent>
+                                                    </Reasoning>
                                                 )
 
                                             default:
